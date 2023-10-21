@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <cassert>
 
 using Byte = unsigned char;
 using Word = unsigned short;
@@ -13,6 +14,13 @@ struct Mem {
 		for (u32 i = 0; i < MAX_MEM; i++) {
 			Data[i] = 0;
 		}
+	}
+	// basically a read byte function
+	Byte operator[](u32 Address) const {
+		// assert that Address is < MAX_MEM to prevent overflow errors
+		assert(Address < MAX_MEM);
+		
+		return Data[Address];
 	}
 };
 
@@ -40,6 +48,18 @@ struct CPU {
 		A = X = Y = 0; // Reset Registers
 		memory.Initialize(); // Initialize total memory for CPU
 	}
+	Byte FetchByte(u32& Cycles, Mem& memory) {
+		Byte Data = memory[PC];
+		PC++;
+		Cycles--;
+		return Data;
+	}
+
+	void Execute(u32 Cycles,Mem& memory) {
+		while (Cycles > 0) {
+			Byte Instruction = FetchByte(Cycles, memory);
+		}
+	}
 
 };
 
@@ -49,6 +69,7 @@ int main() {
 	CPU cpu;
 
 	cpu.Reset(mem);
+	cpu.Execute(2,mem);
 
 	return 0;
 }
