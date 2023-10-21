@@ -19,9 +19,20 @@ struct CPU {
 	Byte V : 1; // Overflow Flag
 	Byte N : 1; // Negative Flag
 
+	void Reset() {
+		PC = 0xFFFC; // Set Program Counter
+		SP = 0x0100; // Set Stack pointer
+		C = Z = I = D = B = V = N = 0; // Clear all bit values
+		A = X = Y = 0; // Reset Registers
+	}
 
 };
 
 int main() {
+
+	CPU cpu;
+
+	cpu.Reset();
+
 	return 0;
 }
