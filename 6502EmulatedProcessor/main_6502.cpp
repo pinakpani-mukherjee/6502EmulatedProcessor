@@ -30,6 +30,12 @@ struct Mem {
 
 		return Data[Address];
 	}
+	/* Write 2 bytes*/
+	void WriteWord(Word Value, u32 Address, u32& Cycles ) {
+		Data[Address] = Value & 0xFF;
+		Data[Address + 1] = (Value >>8);
+		Cycles -= 2;
+	}
 };
 
 struct CPU {
@@ -62,6 +68,20 @@ struct CPU {
 		Cycles--;
 		return Data;
 	}
+	Word FetchWord(u32& Cycles, Mem& memory) {
+
+		// 6502 is little Endian
+		Word Data = memory[PC];
+		PC++;
+
+		Data |= (memory[PC] << 8);
+		PC++;
+
+		Cycles -= 2;
+
+
+		return Data;
+	}
 	Byte ReadByte(u32& Cycles, Byte Address, Mem& memory) {
 		Byte Data = memory[Address];
 		Cycles--;
@@ -70,8 +90,9 @@ struct CPU {
 	// opcodes
 	static constexpr Byte
 		INS_LDA_IM = 0xA9, // Load A Register Immediate 
-	    INS_LDA_ZP = 0xA5, // Load A Register Zero Page
-		INS_LDA_ZPX = 0xB5; // Load A Register Zero Page, with X
+		INS_LDA_ZP = 0xA5, // Load A Register Zero Page
+		INS_LDA_ZPX = 0xB5, // Load A Register Zero Page, with X
+		INS_JSR = 0x20; // Jump to Subroutine
 
 	void LDASetStatus() {
 		Z = (A == 0);
@@ -99,6 +120,13 @@ struct CPU {
 				A = ReadByte(Cycles, ZeroPageAddress, memory);
 				LDASetStatus();
 			} break;
+			case INS_JSR: {
+				Word JmpSubroutineAddress = FetchWord(Cycles, memory);
+				memory.WriteWord(PC - 1, SP, Cycles);
+				SP += 1;
+				PC = JmpSubroutineAddress;
+				Cycles--;
+			} break;
 			default: {
 				std::cout << "Instruction not handled " << Instruction << std::endl;
 			}break;
@@ -115,11 +143,13 @@ int main() {
 
 	cpu.Reset(mem);
 	// start - manually inlining program into memory
-	mem[0xFFFC] = CPU::INS_LDA_ZP;
+	mem[0xFFFC] = CPU::INS_JSR;
 	mem[0xFFFD] = 0x42;
-	mem[0x0042] = 0x69;
+	mem[0xFFFE] = 0x42;
+	mem[0x4242] = CPU::INS_LDA_IM;
+	mem[0x4243] = 0x69;
 	// end - manually inlining program into memory
-	cpu.Execute(4,mem);
+	cpu.Execute(9,mem);
 
 	return 0;
 }
